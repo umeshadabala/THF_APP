@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Homely Food | Kitchen Management</title>
+    <meta name="description" content="Manage orders, inventory, and spending for The Homely Food cloud kitchen.">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#FF6B35">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-circle">THF</span>
+                    <h1>The Homely Food</h1>
+                </div>
+                <div class="user-profile">
+                    <span id="current-date"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area (Dynamic) -->
+        <main id="main-content" class="fade-in">
+            <!-- Content will be injected here by app.js -->
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="dashboard">
+                <span class="icon">🏠</span>
+                <span class="label">Home</span>
+            </button>
+            <button class="nav-item" data-view="orders">
+                <span class="icon">📋</span>
+                <span class="label">Orders</span>
+            </button>
+            <button class="nav-item" data-view="inventory">
+                <span class="icon">📦</span>
+                <span class="label">Stock</span>
+            </button>
+            <button class="nav-item" data-view="spending">
+                <span class="icon">💰</span>
+                <span class="label">Spend</span>
+            </button>
+        </nav>
+
+        <!-- Quick Add FAB -->
+        <button id="quick-add" class="fab">
+            <span>+</span>
+        </button>
+
+        <!-- Modal for adding items -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h2 id="modal-title">New Order</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div id="modal-body">
+                    <!-- Form content injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
