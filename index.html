@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div id="app">
@@ -31,6 +32,10 @@
         <!-- Main Content Area (Dynamic) -->
         <main id="main-content" class="fade-in">
             <!-- Content will be injected here by app.js -->
+            <div id="loader" class="loader-container">
+                <div class="loader"></div>
+                <p>Connecting to Kitchen Database...</p>
+            </div>
         </main>
 
         <!-- Bottom Navigation -->
@@ -70,8 +75,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Password Modal -->
+        <div id="password-modal" class="modal hidden">
+            <div class="modal-content glass" style="max-width: 340px;">
+                <div class="modal-header">
+                    <h2>🔒 Admin Access</h2>
+                    <button class="close-password-modal">&times;</button>
+                </div>
+                <div style="padding: 5px 0;">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Enter the admin password to continue.</p>
+                    <input type="password" id="admin-password-input" placeholder="Password" style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:var(--text); font-size:1rem; box-sizing:border-box;">
+                    <p id="password-error" style="color:var(--danger); font-size:0.8rem; margin-top:8px; display:none;">Incorrect password. Try again.</p>
+                    <button id="password-submit-btn" class="btn-primary" style="width:100%; margin-top:15px;">Verify</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="config.js"></script>
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
