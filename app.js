@@ -2,13 +2,79 @@
 let db; // Global Supabase client instance
 
 const ADMIN_PASSWORD = 'THF@123';
+const PROFIT_PER_ORDER = 40;
 
 let state = {
     orders: [],
     inventory: [],
     spending: [],
-    currentView: 'dashboard'
+    currentView: 'dashboard',
+    orderDateFrom: '',
+    orderDateTo: ''
 };
+
+function isSameCalendarDay(dateStr, refDate = new Date()) {
+    const d = new Date(dateStr);
+    return d.getFullYear() === refDate.getFullYear()
+        && d.getMonth() === refDate.getMonth()
+        && d.getDate() === refDate.getDate();
+}
+
+function orderProfit() {
+    return PROFIT_PER_ORDER;
+}
+
+function orderCostPortion(order) {
+    return Math.max(0, Number(order.price) - PROFIT_PER_ORDER);
+}
+
+function getPendingOrders() {
+    return state.orders.filter(o => (o.status || '').toLowerCase() === 'pending');
+}
+
+function getFilteredOrders() {
+    let list = [...state.orders];
+    if (state.orderDateFrom) {
+        const from = new Date(state.orderDateFrom);
+        from.setHours(0, 0, 0, 0);
+        list = list.filter(o => new Date(o.date) >= from);
+    }
+    if (state.orderDateTo) {
+        const to = new Date(state.orderDateTo);
+        to.setHours(23, 59, 59, 999);
+        list = list.filter(o => new Date(o.date) <= to);
+    }
+    return list;
+}
+
+function getOrderProfitStats(orders) {
+    return {
+        count: orders.length,
+        profit: orders.length * PROFIT_PER_ORDER,
+        costPortion: orders.reduce((sum, o) => sum + orderCostPortion(o), 0),
+        grossRevenue: orders.reduce((sum, o) => sum + Number(o.price), 0)
+    };
+}
+
+function getHomeStats() {
+    const todayOrders = state.orders.filter(o => isSameCalendarDay(o.date));
+    return {
+        todayCount: todayOrders.length,
+        todayEarnings: todayOrders.length * PROFIT_PER_ORDER,
+        totalOrders: state.orders.length,
+        totalProfit: state.orders.length * PROFIT_PER_ORDER,
+        totalOrderCosts: state.orders.reduce((sum, o) => sum + orderCostPortion(o), 0)
+    };
+}
+
+function formatDateRangeLabel() {
+    if (state.orderDateFrom && state.orderDateTo) {
+        return `${state.orderDateFrom} → ${state.orderDateTo}`;
+    }
+    if (state.orderDateFrom) return `from ${state.orderDateFrom}`;
+    if (state.orderDateTo) return `until ${state.orderDateTo}`;
+    return 'All dates';
+}
 
 const MENU = [
     { id: 1, name: "Bagara rice + chicken curry/fry", prices: [130, 140] },
@@ -141,47 +207,52 @@ async function initApp() {
 // Views
 const views = {
     dashboard: () => {
-        const today = new Date().toLocaleDateString();
-        const todayOrders = state.orders.filter(o => new Date(o.date).toLocaleDateString() === today);
-        const todayRevenue = todayOrders.reduce((sum, o) => sum + o.price, 0);
-        
-        const totalOrders = state.orders.length;
-        const totalRevenue = state.orders.reduce((sum, o) => sum + o.price, 0);
-        
+        const stats = getHomeStats();
+        const pending = getPendingOrders();
+
         return `
             <div class="stats-grid">
                 <div class="stat-card glass">
-                    <span class="stat-value">${todayOrders.length}</span>
-                    <span class="stat-label">Daily Orders</span>
+                    <span class="stat-value">${stats.todayCount}</span>
+                    <span class="stat-label">Today Orders</span>
                 </div>
                 <div class="stat-card glass">
-                    <span class="stat-value">₹${todayRevenue}</span>
-                    <span class="stat-label">Daily Earning</span>
+                    <span class="stat-value profit">₹${stats.todayEarnings}</span>
+                    <span class="stat-label">Today Earnings</span>
                 </div>
                 <div class="stat-card glass">
-                    <span class="stat-value">${totalOrders}</span>
+                    <span class="stat-value">${stats.totalOrders}</span>
                     <span class="stat-label">Total Orders</span>
                 </div>
                 <div class="stat-card glass">
-                    <span class="stat-value">₹${totalRevenue}</span>
-                    <span class="stat-label">Total Revenue</span>
+                    <span class="stat-value profit">₹${stats.totalProfit}</span>
+                    <span class="stat-label">Total Profit</span>
+                </div>
+                <div class="stat-card glass" style="grid-column: 1 / -1;">
+                    <span class="stat-value cost">₹${stats.totalOrderCosts}</span>
+                    <span class="stat-label">Total Expenses (order cost after ₹${PROFIT_PER_ORDER} profit)</span>
                 </div>
             </div>
+
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:20px; text-align:center;">
+                ₹${PROFIT_PER_ORDER} profit counted per order · Expenses page tracks recorded bills separately
+            </p>
 
             <div style="display:flex; gap:10px; margin-bottom:25px;">
                 <button onclick="fetchData()" class="glass" style="flex:1; padding:10px; border:none; font-size:0.8rem;">🔄 Sync Cloud</button>
             </div>
             
             <section class="recent-orders">
-                <h3 style="margin-bottom: 15px;">Recent Activity</h3>
-                ${state.orders.length === 0 ? '<p style="color:var(--text-muted)">No data available. Add items or sync.</p>' : 
-                    state.orders.slice(0, 5).map(o => `
+                <h3 style="margin-bottom: 15px;">Pending Orders (${pending.length})</h3>
+                ${pending.length === 0 ? '<p style="color:var(--text-muted)">No pending orders right now.</p>' : 
+                    pending.map(o => `
                         <div class="card glass item-row">
                             <div>
                                 <strong>${o.customer || 'Guest'}</strong>
-                                <div style="font-size:0.8rem; color:var(--text-muted)">${o.itemname}</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted)">${o.itemname} · ₹${o.price}</div>
+                                <div class="order-meta">${new Date(o.date).toLocaleString()}</div>
                             </div>
-                            <span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>
+                            <span class="badge badge-pending">${o.status}</span>
                         </div>
                     `).join('')
                 }
@@ -190,13 +261,53 @@ const views = {
     },
     
     orders: () => {
+        const filtered = getFilteredOrders();
+        const stats = getOrderProfitStats(filtered);
+        const hasFilter = state.orderDateFrom || state.orderDateTo;
         return `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2>All Orders</h2>
-                <div style="font-size:0.8rem; color:var(--text-muted)">Total: ${state.orders.length}</div>
+                <div style="font-size:0.8rem; color:var(--text-muted)">Showing: ${filtered.length} / ${state.orders.length}</div>
             </div>
+            <div class="date-filter-bar glass">
+                <div class="filter-field">
+                    <label>From date</label>
+                    <input type="date" id="order-date-from" value="${state.orderDateFrom}">
+                </div>
+                <div class="filter-field">
+                    <label>To date</label>
+                    <input type="date" id="order-date-to" value="${state.orderDateTo}">
+                </div>
+                <div class="filter-actions">
+                    <button type="button" class="btn-filter" onclick="applyOrderDateFilter()">Filter</button>
+                    <button type="button" class="btn-clear" onclick="clearOrderDateFilter()">Clear</button>
+                </div>
+            </div>
+            <section class="filter-profit-summary">
+                <h3 style="margin-bottom:12px; font-size:0.95rem;">
+                    ${hasFilter ? 'Profit for selected dates' : 'Profit summary'} · ${formatDateRangeLabel()}
+                </h3>
+                <div class="stats-grid filter-stats-grid">
+                    <div class="stat-card glass">
+                        <span class="stat-value">${stats.count}</span>
+                        <span class="stat-label">Orders</span>
+                    </div>
+                    <div class="stat-card glass">
+                        <span class="stat-value profit">₹${stats.profit}</span>
+                        <span class="stat-label">Profit (₹${PROFIT_PER_ORDER}/order)</span>
+                    </div>
+                    <div class="stat-card glass">
+                        <span class="stat-value cost">₹${stats.costPortion}</span>
+                        <span class="stat-label">Order costs</span>
+                    </div>
+                    <div class="stat-card glass">
+                        <span class="stat-value">₹${stats.grossRevenue}</span>
+                        <span class="stat-label">Gross revenue</span>
+                    </div>
+                </div>
+            </section>
             <div id="orders-list">
-                ${state.orders.map(o => `
+                ${filtered.length === 0 ? '<p style="color:var(--text-muted)">No orders match this date range.</p>' : filtered.map(o => `
                     <div class="card glass">
                         <div class="item-row" style="margin-bottom:10px;">
                             <strong>${o.customer || 'Guest'}</strong>
@@ -224,15 +335,17 @@ const views = {
             </div>
             ${state.inventory.length === 0 ? '<p>No inventory items yet.</p>' : 
                 state.inventory.map(item => `
-                    <div class="card glass item-row">
-                        <div>
+                    <div class="card glass inventory-card">
+                        <div class="inventory-info">
                             <strong>${item.name}</strong>
-                            <div style="font-size:0.8rem; color:var(--text-muted)">Stock: ${item.quantity} ${item.unit}</div>
+                            <div class="inventory-meta">Stock: ${item.quantity} ${item.unit}</div>
+                            <div class="inventory-meta">Price: <span class="price-tag">₹${item.unitprice != null && item.unitprice !== '' ? item.unitprice : '—'}</span> per ${item.unit}</div>
                         </div>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <button onclick="updateStock('${item.id}', -1)" style="padding:5px 10px; border-radius:5px; border:1px solid #ddd;">-</button>
-                            <button onclick="updateStock('${item.id}', 1)" style="padding:5px 10px; border-radius:5px; border:1px solid #ddd;">+</button>
-                            <button onclick="deleteInventory('${item.id}')" style="background:none; border:none;">🗑️</button>
+                        <div class="inventory-actions">
+                            <button type="button" class="btn-chip" onclick="updateStock('${item.id}', -1)" aria-label="Decrease stock">−</button>
+                            <button type="button" class="btn-chip" onclick="updateStock('${item.id}', 1)" aria-label="Increase stock">+</button>
+                            <button type="button" class="btn-chip btn-chip-primary" onclick="showInventoryEditModal('${item.id}')">Edit</button>
+                            <button type="button" class="btn-icon-delete" onclick="deleteInventory('${item.id}')" aria-label="Delete">🗑️</button>
                         </div>
                     </div>
                 `).join('')
@@ -275,6 +388,24 @@ function renderView(viewName) {
         btn.classList.toggle('active', btn.dataset.view === viewName);
     });
 }
+
+window.applyOrderDateFilter = () => {
+    const fromEl = document.getElementById('order-date-from');
+    const toEl = document.getElementById('order-date-to');
+    state.orderDateFrom = fromEl ? fromEl.value : '';
+    state.orderDateTo = toEl ? toEl.value : '';
+    if (state.orderDateFrom && state.orderDateTo && state.orderDateFrom > state.orderDateTo) {
+        alert('From date cannot be after To date.');
+        return;
+    }
+    renderView('orders');
+};
+
+window.clearOrderDateFilter = () => {
+    state.orderDateFrom = '';
+    state.orderDateTo = '';
+    renderView('orders');
+};
 
 // Modal Handlers
 const modal = document.getElementById('modal');
@@ -397,10 +528,15 @@ window.deleteOrder = async (id) => {
 window.showInventoryModal = async () => {
     if (!(await verifyAdmin())) return;
     showModal('Add Inventory', `
+        <p class="modal-subtitle">Add stock with price per unit, same as order entry</p>
         <form id="inventory-form">
             <div class="form-group">
                 <label>Item Name</label>
                 <input type="text" id="inv-name" required placeholder="e.g. Rice, Chicken">
+            </div>
+            <div class="form-group">
+                <label>Price per unit (₹)</label>
+                <input type="number" id="inv-price" min="0" step="0.01" placeholder="e.g. 80">
             </div>
             <div class="form-group">
                 <label>Quantity</label>
@@ -417,15 +553,24 @@ window.showInventoryModal = async () => {
     document.getElementById('inventory-form').onsubmit = async (e) => {
         e.preventDefault();
 
+        const priceVal = document.getElementById('inv-price').value;
         const newItem = {
             id: Date.now().toString(),
             name: document.getElementById('inv-name').value,
             quantity: parseFloat(document.getElementById('inv-qty').value),
-            unit: document.getElementById('inv-unit').value
+            unit: document.getElementById('inv-unit').value,
+            unitprice: priceVal !== '' ? parseFloat(priceVal) : 0
         };
 
-        const { error } = await db.from('inventory').insert([newItem]);
-        if (error) alert('Error saving inventory');
+        let { error } = await db.from('inventory').insert([newItem]);
+        if (error && String(error.message).includes('unitprice')) {
+            const { unitprice, ...withoutPrice } = newItem;
+            ({ error } = await db.from('inventory').insert([withoutPrice]));
+            if (!error) {
+                alert('Item saved. Run supabase/add_unitprice.sql in Supabase SQL Editor to enable price per unit.');
+            }
+        }
+        if (error) alert('Error saving inventory: ' + error.message);
         else {
             modal.classList.add('hidden');
             fetchData();
@@ -450,6 +595,67 @@ window.deleteInventory = async (id) => {
     const { error } = await db.from('inventory').delete().eq('id', id);
     if (error) alert('Error deleting inventory');
     else fetchData();
+};
+
+window.showInventoryEditModal = async (id) => {
+    if (!(await verifyAdmin())) return;
+    const item = state.inventory.find(i => i.id === id);
+    if (!item) return;
+
+    showModal('Edit Inventory Item', `
+        <p class="modal-subtitle">Update stock and price for <strong>${item.name}</strong></p>
+        <form id="inventory-edit-form">
+            <div class="form-group">
+                <label>Item Name</label>
+                <input type="text" id="inv-edit-name" required value="${item.name.replace(/"/g, '&quot;')}">
+            </div>
+            <div class="form-group">
+                <label>Price per unit (₹)</label>
+                <input type="number" id="inv-edit-price" min="0" step="0.01" placeholder="e.g. 80" value="${item.unitprice != null && item.unitprice !== '' ? item.unitprice : ''}">
+            </div>
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" id="inv-edit-qty" required min="0" step="any" value="${item.quantity}">
+            </div>
+            <div class="form-group">
+                <label>Unit</label>
+                <input type="text" id="inv-edit-unit" placeholder="kg, liters, pcs" value="${item.unit}">
+            </div>
+            <button type="submit" class="btn-primary">Save Changes</button>
+        </form>
+    `);
+
+    document.getElementById('inventory-edit-form').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const priceVal = document.getElementById('inv-edit-price').value;
+        const parsed = priceVal !== '' ? parseFloat(priceVal) : 0;
+        if (priceVal !== '' && (isNaN(parsed) || parsed < 0)) {
+            alert('Enter a valid price.');
+            return;
+        }
+
+        const updates = {
+            name: document.getElementById('inv-edit-name').value.trim(),
+            quantity: parseFloat(document.getElementById('inv-edit-qty').value),
+            unit: document.getElementById('inv-edit-unit').value.trim() || 'kg',
+            unitprice: parsed
+        };
+
+        let { error } = await db.from('inventory').update(updates).eq('id', id);
+        if (error && String(error.message).includes('unitprice')) {
+            const { unitprice, ...withoutPrice } = updates;
+            ({ error } = await db.from('inventory').update(withoutPrice).eq('id', id));
+            if (!error) {
+                alert('Saved without price. Run supabase/add_unitprice.sql in Supabase SQL Editor to enable price per unit.');
+            }
+        }
+        if (error) alert('Error updating item: ' + error.message);
+        else {
+            modal.classList.add('hidden');
+            fetchData();
+        }
+    };
 };
 
 // Spending Actions
@@ -522,5 +728,37 @@ document.getElementById('quick-add').onclick = () => {
 };
 
 document.getElementById('current-date').innerText = new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+// PWA install
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('install-app-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (installBtn) installBtn.classList.remove('hidden');
+});
+
+if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) {
+            alert('Install from your browser menu:\n\n• Chrome/Edge: ⋮ → Install app\n• Safari (iOS): Share → Add to Home Screen');
+            return;
+        }
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') installBtn.classList.add('hidden');
+        deferredInstallPrompt = null;
+    });
+}
+
+window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.classList.add('hidden');
+    deferredInstallPrompt = null;
+});
+
+if (window.matchMedia('(display-mode: standalone)').matches && installBtn) {
+    installBtn.classList.add('hidden');
+}
 
 initApp();

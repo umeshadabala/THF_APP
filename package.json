@@ -1,4 +1,12 @@
 {
+  "name": "thf-app",
+  "version": "1.0.0",
+  "description": "The Homely Food — cloud kitchen management PWA",
+  "private": true,
+  "scripts": {
+    "dev": "npx --yes serve . -l 3000",
+    "start": "npm run dev"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4"
   }

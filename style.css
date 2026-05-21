@@ -105,9 +105,16 @@ main {
     margin-bottom: 25px;
 }
 
+.stats-grid .stat-card[style*="grid-column"] {
+    max-width: 100%;
+}
+
 @media (min-width: 768px) {
     .stats-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .stats-grid .stat-card[style*="grid-column"] {
+        grid-column: 2 / 4 !important;
     }
 }
 
@@ -324,6 +331,155 @@ button.btn-primary {
 .badge-pending { background: #FEF3C7; color: #92400E; }
 .badge-preparing { background: #DBEAFE; color: #1E40AF; }
 .badge-delivered { background: #D1FAE5; color: #065F46; }
+
+.stat-value.profit { color: var(--success); }
+.stat-value.cost { color: var(--danger); }
+
+.date-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    padding: 15px;
+}
+
+.date-filter-bar .filter-field {
+    flex: 1;
+    min-width: 120px;
+}
+
+.date-filter-bar .filter-field label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.date-filter-bar input[type="date"] {
+    padding: 10px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-actions button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn-filter {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-clear {
+    background: #E5E7EB;
+    color: var(--text-main);
+}
+
+.order-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.filter-profit-summary {
+    margin-bottom: 20px;
+}
+
+.filter-stats-grid {
+    margin-bottom: 0;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.install-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.install-btn.hidden {
+    display: none;
+}
+
+.modal-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: -10px 0 18px;
+}
+
+.inventory-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.inventory-info strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.inventory-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.price-tag {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.inventory-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-chip {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    background: white;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-main);
+}
+
+.btn-chip-primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.btn-icon-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    margin-left: auto;
+}
 
 /* Desktop adjustments */
 @media (min-width: 768px) {

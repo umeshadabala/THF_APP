@@ -7,7 +7,12 @@
     <meta name="description" content="Manage orders, inventory, and spending for The Homely Food cloud kitchen.">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#FF6B35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="THF Kitchen">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -24,6 +29,7 @@
                     <h1>The Homely Food</h1>
                 </div>
                 <div class="user-profile">
+                    <button type="button" id="install-app-btn" class="install-btn hidden" aria-label="Install app">Install</button>
                     <span id="current-date"></span>
                 </div>
             </div>
@@ -54,7 +60,7 @@
             </button>
             <button class="nav-item" data-view="spending">
                 <span class="icon">💰</span>
-                <span class="label">Spend</span>
+                <span class="label">Expenses</span>
             </button>
         </nav>
 
@@ -98,7 +104,9 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then(reg => console.log('PWA ready:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
             });
         }
     </script>
